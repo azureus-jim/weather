@@ -25,16 +25,16 @@ def extract_temperature_data():
     _data = _raw_data['items'][0]['readings']                 # Type: list. Format: [{'station_id': ..., 'value': ...}, {~~~}, ...]
 
     _station_i, _data_i = 0, 0
-    _num_stations = len(stations)
-    while _station_i <= _num_stations - 1:
+    num_stations = len(stations)
+    while _station_i <= num_stations - 1:
         if stations[_station_i]['id'] == _data[_data_i]['station_id']:
-            stations[_station_i]['temperature'] = _data[_data_i]['value']
+            stations[_station_i]['temperature'] = _data[_data_i]['value']       # Add temperature reading into processed dictionary
             _station_i += 1
             _data_i = 0
         else:
             _data_i += 1
 
     temperature_data = {'reading_time': reading_time, 'reading_unit': reading_unit, 'stations': stations}
-    return temperature_data
+    return temperature_data, num_stations
 
 print(extract_temperature_data())
