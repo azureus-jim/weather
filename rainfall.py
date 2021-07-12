@@ -4,7 +4,9 @@ import requests
 
 # Rainfall data
 """
-Reads "https://api.data.gov.sg/v1/environment/rainfall"
+Data source: "https://api.data.gov.sg/v1/environment/rainfall"
+Refresh rate: 12/hr
+
 rainfall_data = 
 {
     'reading_time': reading_time, 

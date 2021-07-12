@@ -4,7 +4,9 @@ import requests
 
 # Temperature data
 """
-Reads "https://api.data.gov.sg/v1/environment/air-temperature"
+Data source: "https://api.data.gov.sg/v1/environment/air-temperature"
+Refresh rate: 60/hr
+
 temp_data = 
 {
     'reading_time': reading_time, 
