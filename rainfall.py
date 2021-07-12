@@ -5,12 +5,12 @@ import requests
 # Rainfall data
 """
 Reads "https://api.data.gov.sg/v1/environment/rainfall"
-temp_data = 
+rainfall_data = 
 {
     'reading_time': reading_time, 
-    'reading_unit': 'deg_C', 
+    'reading_unit': 'mm', 
     'stations': [
-                {'id': '...', 'name': '...', 'location': {'latitude': ..., 'longitude': ...}, 'temperature': ...},
+                {'id': '...', 'name': '...', 'location': {'latitude': ..., 'longitude': ...}, 'rainfall': ...},
                 {~~~},
                 ...
             ]
