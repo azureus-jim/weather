@@ -40,8 +40,9 @@ def extract_rainfall_data():
     return rainfall_data, num_stations
 
 # Output if rain is detected (just for practice)
-rainfall_data, num_stations = extract_rainfall_data()
-for i in range(num_stations):
-    station = rainfall_data['stations'][i]
-    if station['rainfall'] != 0:
-        print(f"Rain detected at {station['name']} of {station['rainfall']} mm.")
+if __name__ == "__main__":
+    rainfall_data, num_stations = extract_rainfall_data()
+    for i in range(num_stations):
+        station = rainfall_data['stations'][i]
+        if station['rainfall'] != 0:
+            print(f"Rain detected at {station['name']} of {station['rainfall']} mm.")
