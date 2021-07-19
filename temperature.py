@@ -39,5 +39,7 @@ def extract_temperature_data():
     temperature_data = {'reading_time': reading_time, 'reading_unit': reading_unit, 'stations': stations}
     return temperature_data, num_stations
 
+# Output temperature at each location
 if __name__ == "__main__":
-    print(extract_temperature_data())
+    temperature_data, num_stations = extract_temperature_data()
+    print(temperature_data)
