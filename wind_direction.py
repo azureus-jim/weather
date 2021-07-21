@@ -43,3 +43,5 @@ def extract_wind_direction_data():
 if __name__ == "__main__":
     wind_direction_data, num_stations = extract_wind_direction_data()
     print(wind_direction_data)
+
+# This is a test line that will be committed then removed via 'git revert'
