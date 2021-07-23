@@ -144,24 +144,3 @@ class Collector:
                     print(df)
                 time.sleep(self.ping_interval)
             return df
-
-
-#df = df.append(self.connect_to_api())
-#print(len(df.index.values))
-
-
-temperature_scrapper = Collector(data_query='temp', entry_format='V1', ping_interval=60)
-df = temperature_scrapper.build_df()
-print(df)
-#windspeed_scrapper = Collector('speed')
-#built_df = temperature_scrapper.build_df()
-#windspeed_scrapper.connect_to_api(entry_format='V1')
-#print(temperature_scrapper.df_entry) #, windspeed_scrapper.reading_time)
-
-
-
-#raw_data = temperature_scrapper.connect_to_api()
-#print(raw_data)
-#print(temperature_scrapper.raw_data)
-#print(temperature_scrapper.temp_pattern)
-#print(temperature_scrapper.data_type)
