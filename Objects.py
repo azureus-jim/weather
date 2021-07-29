@@ -80,14 +80,15 @@ class Collector:
 
     def _get_reading(self):
         # Store reading_time, reading_unit, stations (data), and readings as attributes of a Collector instance (these attributes are updated everytime extract_data is called successfully)
-        stations = self.raw_reading['metadata']['stations']                 # Type: list. Format: [{'id': ..., 'device_id': ..., 'name': ..., 'location': {'latitude': ..., 'longitude': ...}}, {~~~}, ...]. Note that stations is modified on the fly in the subsequent lines
-        readings = self.raw_reading['items'][0]['readings']                 # Type: list. Format: [{'station_id': ..., 'value': ...}, {~~~}, ...]
+        stations = self.raw_reading['metadata']['stations']                                                          # Type: list. Format: [{'id': ..., 'device_id': ..., 'name': ..., 'location': {'latitude': ..., 'longitude': ...}}, {~~~}, ...]. Note that stations is modified on the fly in the subsequent lines
+        readings = self.raw_reading['items'][0]['readings']                                                          # Type: list. Format: [{'station_id': ..., 'value': ...}, {~~~}, ...]
+        self.num_stations = len(stations)                                                                            # Type: int. Get number of stations
+        self.station_ids = sorted(list(stations[i]['id'] for i in range(len(stations))), key=lambda x: int(x[1:]))  # Type: list. Get list of station ids (sorted by value after S prefix)
         
         # Format the raw_data into an appropriate pandas DataFrame (as requested by the user when calling extract_data function) for storage purposes
         if re.search(r"v1", self.build_format, re.IGNORECASE):
             # Modify the json data to the necessary structure
             station_i, reading_i = 0, 0
-            self.num_stations = len(stations)
             while station_i <= self.num_stations - 1:
                 if stations[station_i]['id'] == readings[reading_i]['station_id']:
                     stations[station_i][f'{self.data_name}'] = readings[reading_i]['value']       # Add f'{data_name}' reading into processed dictionary
@@ -105,7 +106,7 @@ class Collector:
                 entry.append(float(station[f'{self.data_name}']))             
             df_entry = pd.DataFrame(np.array([entry]), columns=column_header)
             df_entry.rename(index={0: processed_reading['reading_time']}, inplace=True)                       # Use 'reading_time' as index (row_label)
-            df_entry.sort_index(axis=1, inplace=True, key=lambda x: x.to_series().str[1:].astype(int))        # Sort by column headers
+            df_entry.sort_index(axis=1, inplace=True, key=lambda x: x.to_series().str[1:].astype(int))        # Sort by column headers (by value after S prefix)
 
             return df_entry
 
