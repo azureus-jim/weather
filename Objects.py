@@ -121,8 +121,11 @@ class Collector:
         # If the reading_time of the response is different from the latest entry in the DataFrame, the new_df_entry is appended to the existing DataFrame.
         if limit == None:
             while True:
+                if df.shape[0] >= 12:
+                    break
                 try:
                     self._connect_to_api()
+                    # Add entry to dataframe only if reading_time is not the same as the latest row in the growing dataframe
                     if self.reading_time != df.index[-1]:
                         new_df_entry = self._get_reading()
                         df = df.append(new_df_entry)
@@ -131,6 +134,7 @@ class Collector:
                     time.sleep(self.ping_interval)
                 except KeyboardInterrupt:
                     return df
+            return df
 
         # Else if a build limit (int type) is set, the Collector will ping the API at the preset ping_interval.
         # It will check if the reading_time of the response is different from the latest entry in the DataFrame, in which the new_df_entry is appended to the existing DataFrame. This repeats until the build limit is reached.
