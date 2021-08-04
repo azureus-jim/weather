@@ -121,6 +121,7 @@ class Collector:
         # If the reading_time of the response is different from the latest entry in the DataFrame, the new_df_entry is appended to the existing DataFrame.
         if limit == None:
             while True:
+                # Implied limit of 12 rows of data if no value for var limit specified.
                 if df.shape[0] >= 12:
                     break
                 try:
