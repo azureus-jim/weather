@@ -5,6 +5,7 @@ import requests
 import numpy as np
 import pandas as pd
 import time
+import sqlite3 as sl
 
 """
 
@@ -110,43 +111,70 @@ class Collector:
 
             return df_entry
 
-    ## Build DataFrame (by repeatedly calling _get_reading function above if _connect_to_api function passes)
-    def build_df(self, limit=None):
-        # Connect to API and get first reading to start off the DataFrame construction
-        self._connect_to_api()
-        df = self._get_reading()
-        print(df)
-
-        # If no build limit is set, the Collector will keep pinging the API at the preset ping_interval. 
-        # If the reading_time of the response is different from the latest entry in the DataFrame, the new_df_entry is appended to the existing DataFrame.
-        if limit == None:
-            while True:
-                # Implied limit of 12 rows of data if no value for var limit specified.
-                if df.shape[0] >= 12:
-                    break
-                try:
-                    self._connect_to_api()
-                    # Add entry to dataframe only if reading_time is not the same as the latest row in the growing dataframe
-                    if self.reading_time != df.index[-1]:
-                        new_df_entry = self._get_reading()
-                        df = df.append(new_df_entry)
-                        print(df)
-                    print(f"Latest ping returned the same reading as latest entry in built DataFrame. Waiting for next ping in {self.ping_interval} seconds...")
-                    time.sleep(self.ping_interval)
-                except KeyboardInterrupt:
-                    return df
-            return df
-
-        # Else if a build limit (int type) is set, the Collector will ping the API at the preset ping_interval.
-        # It will check if the reading_time of the response is different from the latest entry in the DataFrame, in which the new_df_entry is appended to the existing DataFrame. This repeats until the build limit is reached.
-        else:
+    ## Build DataFrame (by calling _get_reading function after a _connect_to_api call)
+    def build_df(self, path_to_db, table_name, limit, send_to_db=False):
+        # Try to build the dataframe as far as possible, barring KeyboardInterrupt
+        try:
+            # Get first entry
+            self._connect_to_api()
+            df = self._get_reading()
+            print(f"First entry of DataFrame built!")
+            print(df)
             entry_cnt = 1
-            while entry_cnt <= limit:
+            # For subsequent entries, check if API is returning an updated timestamp
+            while entry_cnt < limit:
                 self._connect_to_api()
                 if self.reading_time != df.index[-1]:
                     new_df_entry = self._get_reading()
                     df = df.append(new_df_entry)
                     entry_cnt += 1
                     print(df)
+                if entry_cnt == limit:          # This special if clause helps for testing (allow for an earlier break when limit set to 1)
+                    break
+                print(f"Latest ping returned the same reading as latest entry in built DataFrame. Waiting for next ping in {self.ping_interval} seconds...")
                 time.sleep(self.ping_interval)
+        except KeyboardInterrupt:
+            pass                                    # df will be retained in memory up to the previous successful while True iteration.
+
+        # If send_to_db == True:
+            # 1) Make connection with database
+            # 2) Prune top row of dataframe if its datetime is the same as the latest row in the database target table
+            # 3) Make the dataframe and target table in the database compatible with each other (i.e. ensure the stations in the database should be equal to or larger than the number of incoming stations)
+            # 4) Pass modified dataframe to database
+        if send_to_db == True:
+            # 1) Make connection with database
+            self.con = sl.connect(path_to_db)
+            self.cur = self.con.cursor()
+            
+            # 2) Prune top row of dataframe if its datetime is the same as the latest row in the database target table
+            # Since in the dataframe building process, each entry added is unique, and time only increases in one direction, checking the top row of the incoming dataframe against the last row of the existing table would do in ensuring a chronological order of entries
+            last_row_datetime_in_dbTable = self.cur.execute(f"SELECT * FROM {table_name}").fetchall()[-1][1]
+            earliest_entry_in_df = df['date_time'][0]
+            if earliest_entry_in_df == last_row_datetime_in_dbTable:
+                df = df.drop([f'{earliest_entry_in_df}'])
+
+            # 3) Make the dataframe and target table in the database compatible with each other (i.e. ensure the stations in the database should be equal to or larger than the number of incoming stations)
+            colsInDb_descriptions = self.cur.execute("SELECT * FROM {}".format(table_name)).description
+            colsInDb_names = [colsInDb_descriptions[x][0] for x in range(len(colsInDb_descriptions))]
+            stationsInDb = colsInDb_names[2:]           # First two columns from left are entry_id and date_time
+            # Check if df has columns (stations) not present in database yet
+            incoming_stations = list(df.keys())
+            for i in range(len(incoming_stations)):
+                if incoming_stations[i] not in stationsInDb:
+                    # Add the incoming station name as a column into the existing database. The horizontal location where the incoming station name is inserted does not matter.
+                    sql_add_station = """ALTER TABLE {}
+                                        ADD COLUMN {} TEXT ;
+                                    """.format(table_name, incoming_stations[i])
+                    self.cur.execute(sql_add_station)
+                    print(f"Incoming station {incoming_stations[i]} added to {table_name} table in database as a column. Previously not present.")
+
+            # 4) Pass modified dataframe to database
+            # Now the stations in the database should be equal to or larger than the number of incoming stations
+            # In other words, the incoming stations should all be represented in the database now 
+            df.to_sql(table_name, self.con, if_exists='append', index_label='date_time')
+            print("\nAdded dataframe: \n")
+            print(df)
+
+        else:
+            print("DataFrame construction completed! Constructed DataFrame not passed into database.")
             return df
