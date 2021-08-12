@@ -154,7 +154,7 @@ class Collector:
                 if earliest_entry_in_df == last_row_datetime_in_dbTable:
                     df = df.drop([f'{earliest_entry_in_df}'])
                 dbTable_empty = False
-            except IndexError:
+            except IndexError:          # An index error could be raised to show that there are no rows in the target table in the database.
                 dbTable_empty = True
 
 
