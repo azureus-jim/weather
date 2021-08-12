@@ -192,7 +192,8 @@ class Collector:
                 print(df, "\n")
             else:
                 print("DataFrame not added due to it being empty from pruning!")
-
+            self.con.close()
+            
         else:
             print("DataFrame construction completed! Constructed DataFrame not passed into database.")
             return df
