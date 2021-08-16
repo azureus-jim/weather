@@ -8,8 +8,8 @@ import time
 import sqlite3 as sl
 
 # Function to create all tables in the database (before any Collector instance is created/function is called)
-def create_all_tables():
-    con = sl.connect('vault.db')
+def create_all_tables(db='vault.db'):
+    con = sl.connect(db)
     cur = con.cursor()
     table_names = ['temperature', 'rainfall', 'relative_humidity', 'wind_direction', 'wind_speed']
     print()
@@ -135,7 +135,7 @@ class Collector:
             return df_entry
 
     ## Build DataFrame (by calling _get_reading function after a _connect_to_api call)
-    def build_df(self, path_to_db, table_name, limit, send_to_db=False):
+    def build_df(self, db_table_name, limit, path_to_db='vault.db', send_to_db=False):
         # Try to build the dataframe as far as possible, barring KeyboardInterrupt
         try:
             # Get first entry
@@ -172,7 +172,7 @@ class Collector:
             # 2) Prune top row of dataframe if its datetime is the same as the latest row in the database target table
             # Since in the dataframe building process, each entry added is unique, and time only increases in one direction, checking the top row of the incoming dataframe against the last row of the existing table would do in ensuring a chronological order of entries
             try:
-                last_row_datetime_in_dbTable = self.cur.execute(f"SELECT * FROM {table_name}").fetchall()[-1][1]
+                last_row_datetime_in_dbTable = self.cur.execute(f"SELECT * FROM {db_table_name}").fetchall()[-1][1]
                 earliest_entry_in_df = df.index[0]
                 if earliest_entry_in_df == last_row_datetime_in_dbTable:
                     df = df.drop([f'{earliest_entry_in_df}'])
@@ -188,11 +188,11 @@ class Collector:
                     # Add the incoming station name as a column into the existing database. The horizontal location where the incoming station name is inserted does not matter.
                     sql_add_station = """ALTER TABLE {}
                                         ADD COLUMN {} TEXT ;
-                                    """.format(table_name, incoming_stations[i])
+                                    """.format(db_table_name, incoming_stations[i])
                     self.cur.execute(sql_add_station)
-                    print(f"Station {incoming_stations[i]} added to {table_name} table in database as a column. Table was empty previously.")
+                    print(f"Station {incoming_stations[i]} added to {db_table_name} table in database as a column. Table was empty previously.")
             else:
-                colsInDb_descriptions = self.cur.execute("SELECT * FROM {}".format(table_name)).description
+                colsInDb_descriptions = self.cur.execute("SELECT * FROM {}".format(db_table_name)).description
                 colsInDb_names = [colsInDb_descriptions[x][0] for x in range(len(colsInDb_descriptions))]
                 stationsInDb = colsInDb_names[2:]           # First two columns from left are entry_id and date_time
                 # Check if df has columns (stations) not present in database yet
@@ -201,16 +201,16 @@ class Collector:
                         # Add the incoming station name as a column into the existing database. The horizontal location where the incoming station name is inserted does not matter.
                         sql_add_station = """ALTER TABLE {}
                                             ADD COLUMN {} TEXT ;
-                                        """.format(table_name, incoming_stations[i])
+                                        """.format(db_table_name, incoming_stations[i])
                         self.cur.execute(sql_add_station)
-                        print(f"Incoming station {incoming_stations[i]} added to {table_name} table in database as a column. Previously not present.")
+                        print(f"Incoming station {incoming_stations[i]} added to {db_table_name} table in database as a column. Previously not present.")
 
             # 4) Pass modified dataframe to database
             # Now the stations in the database should be equal to or larger than the number of incoming stations
             # In other words, the incoming stations should all be represented in the database now
             # It is possible however, that the dataframe is empty at this stage, if only one entry was made and that entry pruned in step 2 above due to matching with the latest entry in the target table in the database.
             if df.shape[0] != 0:
-                df.to_sql(table_name, self.con, if_exists='append', index_label='date_time')
+                df.to_sql(db_table_name, self.con, if_exists='append', index_label='date_time')
                 print("\nAdded DataFrame: \n")
                 print(df, "\n")
             else:
