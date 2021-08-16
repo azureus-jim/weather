@@ -7,6 +7,29 @@ import pandas as pd
 import time
 import sqlite3 as sl
 
+# Function to create all tables in the database (before any Collector instance is created/function is called)
+def create_all_tables():
+    con = sl.connect('vault.db')
+    cur = con.cursor()
+    table_names = ['temperature', 'rainfall', 'relative_humidity', 'wind_direction', 'wind_speed']
+    print()
+    for table in table_names:
+        try:
+            create_blank_table = f"""
+                    CREATE TABLE {table} (
+                        entry_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        date_time TEXT ) ;
+                    """
+            cur.execute(create_blank_table)
+            con.commit()
+            print(f"Table '{table}' created with 'entry_id' and 'date_time' as headers! No station headers created!")
+        except sl.OperationalError:
+            print(f"Table '{table}' already exists in vault.db!")
+            #sys.exit()
+    con.close()
+    print()
+
+
 """
 
 Collector object is used to interface with the API, collect information/data, and transport it/interface to the database.
