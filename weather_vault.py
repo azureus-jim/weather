@@ -155,7 +155,7 @@ class Collector:
                     """
                 self.cur.execute(create_blank_table)
                 self.con.commit()
-                print(f"Table '{db_table_name}' created with 'entry_id' and 'date_time' as headers! No station headers created!")
+                print(f"Empty table '{db_table_name}' created with 'entry_id' and 'date_time' as headers! No station headers created!")
             except sl.OperationalError:
                 print(f"Table '{db_table_name}' already exists in vault.db!")
 
@@ -167,7 +167,7 @@ class Collector:
                 if earliest_entry_in_df == last_row_datetime_in_dbTable:
                     df = df.drop([f'{earliest_entry_in_df}'])
                 dbTable_empty = False
-            except IndexError:          # An index error could be raised to show that there are no rows in the target table in the database.
+            except IndexError:          # An index error could be raised to show that there are no rows in the target table in the database. It is very likely that there are no station headers as well (only entry_id and date_time).
                 dbTable_empty = True
 
 
