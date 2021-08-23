@@ -7,29 +7,6 @@ import pandas as pd
 import time
 import sqlite3 as sl
 
-# Function to create all tables in the database (before any Collector instance is created/function is called)
-def create_all_tables(db='vault.db'):
-    con = sl.connect(db)
-    cur = con.cursor()
-    table_names = ['temperature', 'rainfall', 'relative_humidity', 'wind_direction', 'wind_speed']
-    print()
-    for table in table_names:
-        try:
-            create_blank_table = f"""
-                    CREATE TABLE {table} (
-                        entry_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                        date_time TEXT ) ;
-                    """
-            cur.execute(create_blank_table)
-            con.commit()
-            print(f"Table '{table}' created with 'entry_id' and 'date_time' as headers! No station headers created!")
-        except sl.OperationalError:
-            print(f"Table '{table}' already exists in vault.db!")
-            #sys.exit()
-    con.close()
-    print()
-
-
 """
 
 Collector object is used to interface with the API, collect information/data, and transport it/interface to the database.
@@ -167,10 +144,21 @@ class Collector:
             # 3) Make the dataframe and target table in the database compatible with each other (i.e. ensure the stations in the database should be equal to or larger than the number of incoming stations)
             # 4) Pass modified dataframe to database
         if send_to_db == True:
-            # 1) Make connection with database
+            # 1) Make connection with database and try to build a blank table (with only entry_id and date_time columns)
             self.con = sl.connect(path_to_db)
             self.cur = self.con.cursor()
-            
+            try:
+                create_blank_table = f"""
+                    CREATE TABLE {db_table_name} (
+                        entry_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                        date_time TEXT ) ;
+                    """
+                self.cur.execute(create_blank_table)
+                self.con.commit()
+                print(f"Table '{db_table_name}' created with 'entry_id' and 'date_time' as headers! No station headers created!")
+            except sl.OperationalError:
+                print(f"Table '{db_table_name}' already exists in vault.db!")
+
             # 2) Prune top row of dataframe if its datetime is the same as the latest row in the database target table
             # Since in the dataframe building process, each entry added is unique, and time only increases in one direction, checking the top row of the incoming dataframe against the last row of the existing table would do in ensuring a chronological order of entries
             try:
