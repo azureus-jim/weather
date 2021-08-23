@@ -138,24 +138,26 @@ class Collector:
     def build_df(self, db_table_name, limit, path_to_db='vault.db', send_to_db=False):
         # Try to build the dataframe as far as possible, barring KeyboardInterrupt
         try:
-            # Get first entry
-            self._connect_to_api()
-            df = self._get_reading()
-            print(f"First entry of DataFrame built!")
-            print(df)
-            entry_cnt = 1
-            # For subsequent entries, check if API is returning an updated timestamp
-            while entry_cnt < limit:
-                self._connect_to_api()
-                if self.reading_time != df.index[-1]:
-                    new_df_entry = self._get_reading()
-                    df = df.append(new_df_entry)
-                    entry_cnt += 1
-                    print(df)
-                if entry_cnt == limit:          # This special if clause helps for testing (allow for an earlier break when limit set to 1)
-                    break
-                print(f"Latest ping returned the same reading as latest entry in built DataFrame. Waiting for next ping in {self.ping_interval} seconds...")
-                time.sleep(self.ping_interval)
+            for i in range(limit): #tqdm.tqdm(range(limit), desc=f"{db_table_name}", position=0, leave=True):
+                if i == 0:
+                    # Get first entry
+                    self._connect_to_api()
+                    df = self._get_reading()
+                    print(f"First entry of DataFrame for (dbTable: {db_table_name}) built!")
+                else:
+                    # For subsequent entries, check if API is returning an updated timestamp
+                    print(f"Building {i+1}/{limit} of DataFrame for (dbTable: {db_table_name}).")
+                    while True:
+                        self._connect_to_api()
+                        if self.reading_time != df.index[-1]:
+                            new_df_entry = self._get_reading()
+                            df = df.append(new_df_entry)
+                            #print(df)
+                            break
+                        else:
+                            #print(f"({db_table_name}) Latest ping returned the same reading as latest entry in built DataFrame. Waiting for next ping in {self.ping_interval} seconds...")
+                            time.sleep(self.ping_interval)
+                yield i+1
         except KeyboardInterrupt:
             pass                                    # df will be retained in memory up to the previous successful while True iteration.
 
@@ -211,7 +213,7 @@ class Collector:
             # It is possible however, that the dataframe is empty at this stage, if only one entry was made and that entry pruned in step 2 above due to matching with the latest entry in the target table in the database.
             if df.shape[0] != 0:
                 df.to_sql(db_table_name, self.con, if_exists='append', index_label='date_time')
-                print("\nAdded DataFrame: \n")
+                print(f"\nAdded DataFrame to (dbTable: {db_table_name}): \n")
                 print(df, "\n")
             else:
                 print("DataFrame not added due to it being empty from pruning!")
